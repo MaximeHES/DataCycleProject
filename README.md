@@ -94,3 +94,13 @@ Result meanings
 🔴 Red = failed
 
 👉 Only continue if the workflow is green
+
+
+
+
+
+git checkout dev
+git pull
+git add .
+git commit -m "Your message"
+git push
