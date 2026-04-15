@@ -1,5 +1,7 @@
 # ==============================================================
 #testCI
+#testProd
+#testci cd
 # EVERSYS INGESTION V11 - REGENERATED FULL SCRIPT
 # Stable sequential probing for the Eversys 2023 timeline dataset
 #

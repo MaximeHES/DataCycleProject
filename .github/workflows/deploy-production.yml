@@ -1,0 +1,47 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - Production
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, windows, prod-runner]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Backup current test deployment
+        run: |
+          $source = "C:\DataCycle_CICD_Test"
+          $backup = "C:\DeployBackup_CICD_Test\DataCycle_$(Get-Date -Format yyyyMMdd_HHmmss)"
+
+          if (Test-Path $source) {
+            New-Item -ItemType Directory -Path $backup -Force | Out-Null
+            Copy-Item $source\* $backup -Recurse -Force
+          }
+        shell: powershell
+
+      - name: Deploy new code to test folder
+        run: |
+          $deployPath = "C:\DataCycle_CICD_Test"
+
+          if (!(Test-Path $deployPath)) {
+            New-Item -ItemType Directory -Path $deployPath -Force | Out-Null
+          }
+
+          robocopy $env:GITHUB_WORKSPACE $deployPath /MIR /XD .git .github __pycache__ .pytest_cache .venv
+
+          if ($LASTEXITCODE -gt 7) { exit 1 }
+        shell: powershell
+
+      - name: Install dependencies in test folder
+        run: |
+          Set-Location C:\DataCycle_CICD_Test
+
+          if (Test-Path requirements.txt) {
+            pip install -r requirements.txt
+          }
+        shell: powershell
