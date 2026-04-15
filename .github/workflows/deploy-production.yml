@@ -20,7 +20,7 @@ jobs:
 
           if (Test-Path $source) {
             New-Item -ItemType Directory -Path $backup -Force | Out-Null
-            Copy-Item $source\* $backup -Recurse -Force
+            Copy-Item "$source\*" $backup -Recurse -Force
           }
         shell: powershell
 
@@ -33,8 +33,15 @@ jobs:
           }
 
           robocopy $env:GITHUB_WORKSPACE $deployPath /MIR /XD .git .github __pycache__ .pytest_cache .venv
+          $robocopyExitCode = $LASTEXITCODE
 
-          if ($LASTEXITCODE -gt 7) { exit 1 }
+          Write-Host "Robocopy exit code: $robocopyExitCode"
+
+          if ($robocopyExitCode -le 7) {
+            exit 0
+          } else {
+            exit $robocopyExitCode
+          }
         shell: powershell
 
       - name: Install dependencies in test folder
