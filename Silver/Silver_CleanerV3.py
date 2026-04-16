@@ -38,6 +38,10 @@ def register_cleaner(category: str):
 _TS_PATTERN = re.compile(r"(\d{4}-\d{2}-\d{2})[_ ](\d{2})_(\d{2})_(\d{2})-")
 
 
+class EmptyFileError(Exception):
+    """Raised when a bronze .dat file is empty or contains no data rows."""
+
+
 def extract_file_timestamp(filename: str):
     m = _TS_PATTERN.match(filename)
     if not m:
@@ -89,7 +93,11 @@ def clean_common_strings(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def read_bronze_csv(file_path: Path) -> pd.DataFrame:
-    return pd.read_csv(
+    # Skip files that are completely empty (0 bytes)
+    if file_path.stat().st_size == 0:
+        raise EmptyFileError(f"File is empty (0 bytes): {file_path.name}")
+
+    df = pd.read_csv(
         file_path,
         sep=";",
         encoding="utf-8-sig",
@@ -97,6 +105,12 @@ def read_bronze_csv(file_path: Path) -> pd.DataFrame:
         keep_default_na=False,
         engine="python",
     )
+
+    # Skip files that have no data rows (header only or truly blank)
+    if df.empty:
+        raise EmptyFileError(f"File has no data rows: {file_path.name}")
+
+    return df
 
 
 def add_metadata(df: pd.DataFrame, source_file: Path) -> pd.DataFrame:
@@ -237,15 +251,7 @@ def clean_rinse(file_path: Path) -> pd.DataFrame:
         "nozzle_status_left", "nozzle_status_right",
     ]
     df = convert_numeric_columns(df, numeric_cols)
-
-    sentinel_cols = [
-        "flow_rate_left", "flow_rate_right",
-        "nozzle_flow_rate_left", "nozzle_flow_rate_right",
-    ]
-    for col in sentinel_cols:
-        if col in df.columns:
-            df[col] = df[col].replace(65535, pd.NA)
-
+    df = df.replace(65535, pd.NA)
     df = df.drop_duplicates()
 
     left_active  = df["flow_rate_left"].fillna(0)  > 0 if "flow_rate_left"  in df.columns else pd.Series(False, index=df.index)
@@ -323,6 +329,10 @@ def run_full_scan(dry_run: bool = False) -> dict:
                 df.to_csv(silver_path, index=False)
                 print(f"  [OK] {file_path.name}")
                 cat_cleaned += 1
+
+            except EmptyFileError as e:
+                cat_skipped += 1
+                print(f"  [SKIP] {file_path.name} | {e}")
 
             except Exception as e:
                 cat_errors += 1
@@ -408,6 +418,10 @@ def process_batch(batch_path: Path, dry_run: bool = False) -> dict:
                 df.to_csv(silver_path, index=False)
                 print(f"  [OK] {bronze_path.name}")
                 cat_cleaned += 1
+
+            except EmptyFileError as e:
+                cat_skipped += 1
+                print(f"  [SKIP] {bronze_path.name} | {e}")
 
             except Exception as e:
                 cat_errors += 1
