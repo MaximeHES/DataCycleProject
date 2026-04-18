@@ -1,0 +1,49 @@
+#Use to connect to local DB
+DB_CONFIG = {
+    "server": "DESKTOP-Q68M9CQ\SQLEXPRESS",
+    "database": "Gold",
+    "driver": "ODBC Driver 17 for SQL Server"
+}
+
+gold utils LOCAL
+
+def get_connection():
+    import pyodbc
+
+    conn_str = (
+        "DRIVER={ODBC Driver 17 for SQL Server};"
+        "SERVER=DESKTOP-Q68M9CQ\\SQLEXPRESS;"
+        "DATABASE=Gold;"
+        "Trusted_Connection=yes;"
+        "TrustServerCertificate=yes;"
+    )
+
+    return pyodbc.connect(conn_str)
+
+# Use to connect to Azure DB
+
+    DB_CONFIG_Azure = {
+    "server": "sql-eversys-coffee.database.windows.net",
+    "database": "sql-db-eversys-gold",
+    "username": "sqladmin",
+    "password": "AdminHevs01",
+    "driver": "ODBC Driver 17 for SQL Server"
+}
+
+gold_utils Azure
+
+def get_connection():
+    import pyodbc
+
+    conn_str = (
+        f"DRIVER={{{DB_CONFIG['driver']}}};"
+        f"SERVER={DB_CONFIG['server']};"
+        f"DATABASE={DB_CONFIG['database']};"
+        f"UID={DB_CONFIG['username']};"
+        f"PWD={DB_CONFIG['password']};"
+        "Encrypt=yes;"
+        "TrustServerCertificate=no;"
+        "Connection Timeout=30;"
+    )
+
+    return pyodbc.connect(conn_str)
