@@ -1,0 +1,3 @@
+machine_id,timestamp,rinse_type,flow_rate_left,flow_rate_right,status_left,status_right,pump_pressure,nozzle_flow_rate_left,nozzle_flow_rate_right,nozzle_status_left,nozzle_status_right,side_active,source_file,file_timestamp,ingestion_timestamp
+2685,2023-04-07 02:12:57,0,105,,6,0,0,,,0,0,left,2023-04-07_02_15_00-Rinse_History.dat,2023-04-07 02:15:00,2026-04-14 13:48:39
+2685,2023-04-07 02:13:25,1,110,108,1,1,2,45,44,1,1,both,2023-04-07_02_15_00-Rinse_History.dat,2023-04-07 02:15:00,2026-04-14 13:48:39
