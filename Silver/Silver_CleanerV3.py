@@ -38,10 +38,6 @@ def register_cleaner(category: str):
 _TS_PATTERN = re.compile(r"(\d{4}-\d{2}-\d{2})[_ ](\d{2})_(\d{2})_(\d{2})-")
 
 
-class EmptyFileError(Exception):
-    """Raised when a bronze .dat file is empty or contains no data rows."""
-
-
 def extract_file_timestamp(filename: str):
     m = _TS_PATTERN.match(filename)
     if not m:
@@ -93,11 +89,7 @@ def clean_common_strings(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def read_bronze_csv(file_path: Path) -> pd.DataFrame:
-    # Skip files that are completely empty (0 bytes)
-    if file_path.stat().st_size == 0:
-        raise EmptyFileError(f"File is empty (0 bytes): {file_path.name}")
-
-    df = pd.read_csv(
+    return pd.read_csv(
         file_path,
         sep=";",
         encoding="utf-8-sig",
@@ -106,17 +98,11 @@ def read_bronze_csv(file_path: Path) -> pd.DataFrame:
         engine="python",
     )
 
-    # Skip files that have no data rows (header only or truly blank)
-    if df.empty:
-        raise EmptyFileError(f"File has no data rows: {file_path.name}")
-
-    return df
-
 
 def add_metadata(df: pd.DataFrame, source_file: Path) -> pd.DataFrame:
     file_ts = extract_file_timestamp(source_file.name)
-    df["source_file"]        = source_file.name
-    df["file_timestamp"]     = file_ts.strftime("%Y-%m-%d %H:%M:%S") if file_ts else pd.NA
+    df["source_file"] = source_file.name
+    df["file_timestamp"] = file_ts.strftime("%Y-%m-%d %H:%M:%S") if file_ts else pd.NA
     df["ingestion_timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return df
 
@@ -211,8 +197,8 @@ def clean_cleaning(file_path: Path) -> pd.DataFrame:
 
     composite_cols = [
         "milk_clean_temp_left", "milk_clean_temp_right",
-        "milk_clean_rpm_left",  "milk_clean_rpm_right",
-        "milk_seq_cycle_left",  "milk_seq_cycle_right",
+        "milk_clean_rpm_left", "milk_clean_rpm_right",
+        "milk_seq_cycle_left", "milk_seq_cycle_right",
     ]
     df = df.drop(columns=[c for c in composite_cols if c in df.columns])
 
@@ -220,12 +206,12 @@ def clean_cleaning(file_path: Path) -> pd.DataFrame:
         "machine_id", "cleaning_id", "powder_qty", "milk_clean_temp",
         "milk_clean_time", "detergent_qty", "water_qty", "error_code",
         "cleaning_status", "cleaning_type", "milk_system",
-        "milk_seq_cycle_left_1",  "milk_seq_cycle_left_2",
+        "milk_seq_cycle_left_1", "milk_seq_cycle_left_2",
         "milk_seq_cycle_right_1", "milk_seq_cycle_right_2",
-        "milk_temp_left_1",  "milk_temp_left_2",
+        "milk_temp_left_1", "milk_temp_left_2",
         "milk_temp_right_1", "milk_temp_right_2",
-        "milk_rpm_left_1",   "milk_rpm_left_2",
-        "milk_rpm_right_1",  "milk_rpm_right_2",
+        "milk_rpm_left_1", "milk_rpm_left_2",
+        "milk_rpm_right_1", "milk_rpm_right_2",
     ]
     df = convert_numeric_columns(df, numeric_cols)
     df = df.drop_duplicates()
@@ -251,10 +237,18 @@ def clean_rinse(file_path: Path) -> pd.DataFrame:
         "nozzle_status_left", "nozzle_status_right",
     ]
     df = convert_numeric_columns(df, numeric_cols)
-    df = df.replace(65535, pd.NA)
+
+    sentinel_cols = [
+        "flow_rate_left", "flow_rate_right",
+        "nozzle_flow_rate_left", "nozzle_flow_rate_right",
+    ]
+    for col in sentinel_cols:
+        if col in df.columns:
+            df[col] = df[col].replace(65535, pd.NA)
+
     df = df.drop_duplicates()
 
-    left_active  = df["flow_rate_left"].fillna(0)  > 0 if "flow_rate_left"  in df.columns else pd.Series(False, index=df.index)
+    left_active = df["flow_rate_left"].fillna(0) > 0 if "flow_rate_left" in df.columns else pd.Series(False, index=df.index)
     right_active = df["flow_rate_right"].fillna(0) > 0 if "flow_rate_right" in df.columns else pd.Series(False, index=df.index)
 
     df["side_active"] = np.select(
@@ -276,17 +270,17 @@ def clean_info_message(file_path: Path) -> pd.DataFrame:
 
     df["timestamp"] = normalize_datetime_series(df["timestamp"], "timestamp")
 
-    if "machine_id"   in df.columns:
-        df["machine_id"]   = pd.to_numeric(df["machine_id"],   errors="coerce")
-    if "type_number"  in df.columns:
-        df["type_number"]  = pd.to_numeric(df["type_number"],  errors="coerce")
+    if "machine_id" in df.columns:
+        df["machine_id"] = pd.to_numeric(df["machine_id"], errors="coerce")
+    if "type_number" in df.columns:
+        df["type_number"] = pd.to_numeric(df["type_number"], errors="coerce")
 
     df = df.drop_duplicates()
 
     if "number" in df.columns:
         extracted = df["number"].astype("string").str.extract(r"([A-Za-z]+)-?(\d+)?")
         df["message_prefix"] = extracted[0].replace("nan", pd.NA)
-        df["message_code"]   = pd.to_numeric(extracted[1], errors="coerce")
+        df["message_code"] = pd.to_numeric(extracted[1], errors="coerce")
 
     return add_metadata(df, file_path)
 
@@ -330,10 +324,6 @@ def run_full_scan(dry_run: bool = False) -> dict:
                 print(f"  [OK] {file_path.name}")
                 cat_cleaned += 1
 
-            except EmptyFileError as e:
-                cat_skipped += 1
-                print(f"  [SKIP] {file_path.name} | {e}")
-
             except Exception as e:
                 cat_errors += 1
                 print(f"  [ERROR] {file_path.name} | {e}")
@@ -341,7 +331,7 @@ def run_full_scan(dry_run: bool = False) -> dict:
         _print_summary_line(category, cat_cleaned, cat_skipped, cat_errors)
         totals["cleaned"] += cat_cleaned
         totals["skipped"] += cat_skipped
-        totals["errors"]  += cat_errors
+        totals["errors"] += cat_errors
 
     return totals
 
@@ -419,10 +409,6 @@ def process_batch(batch_path: Path, dry_run: bool = False) -> dict:
                 print(f"  [OK] {bronze_path.name}")
                 cat_cleaned += 1
 
-            except EmptyFileError as e:
-                cat_skipped += 1
-                print(f"  [SKIP] {bronze_path.name} | {e}")
-
             except Exception as e:
                 cat_errors += 1
                 print(f"  [ERROR] {bronze_path.name} | {e}")
@@ -430,12 +416,12 @@ def process_batch(batch_path: Path, dry_run: bool = False) -> dict:
         _print_summary_line(cat, cat_cleaned, cat_skipped, cat_errors)
         summary["cleaned"] += cat_cleaned
         summary["skipped"] += cat_skipped
-        summary["errors"]  += cat_errors
+        summary["errors"] += cat_errors
 
     if not dry_run:
         if summary["errors"] == 0:
             mark_batch_done(batch_path)
-            print(f"  Batch marked done.")
+            print("  Batch marked done.")
         else:
             print(f"  Batch NOT marked done ({summary['errors']} error(s) — fix and re-run)")
 
@@ -460,6 +446,38 @@ def run_incremental(dry_run: bool = False) -> dict:
 
 
 # ==============================================================
+# MODE 3 — SINGLE FILE TEST
+# Runs one cleaner on one input file and writes output to a custom
+# directory. This is meant for CI/integration testing.
+# ==============================================================
+
+def run_single_file_test(test_file: Path, category: str, test_output_dir: Path) -> dict:
+    if category not in CATEGORY_CLEANERS:
+        raise ValueError(f"Unknown category: {category}")
+
+    cleaner = CATEGORY_CLEANERS[category]
+
+    if not test_file.exists():
+        raise FileNotFoundError(f"Test input file not found: {test_file}")
+
+    test_output_dir.mkdir(parents=True, exist_ok=True)
+    output_file = test_output_dir / f"{test_file.stem}_CLEANED.csv"
+
+    df = cleaner(test_file)
+    df.to_csv(output_file, index=False)
+
+    print(f"[OK] Test cleaned file created: {output_file}")
+
+    return {
+        "total": 1,
+        "cleaned": 1,
+        "skipped": 0,
+        "errors": 0,
+        "output_file": str(output_file),
+    }
+
+
+# ==============================================================
 # MAIN
 # ==============================================================
 
@@ -468,8 +486,9 @@ def main():
         description=(
             "Eversys Silver Cleaner V3\n\n"
             "Modes:\n"
-            "  --full-scan    Walk all bronze folders directly. Use after wiping Eversys_Cleaned.\n"
-            "  --incremental  Process pending batch JSON files only (default day-to-day mode).\n"
+            "  --mode full         Walk all bronze folders directly. Use after wiping Eversys_Cleaned.\n"
+            "  --mode incremental  Process pending batch JSON files only (default day-to-day mode).\n"
+            "  --test-file         Process one specific file for CI/integration testing.\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -484,8 +503,61 @@ def main():
         action="store_true",
         help="Show what would be processed without writing any files",
     )
+    parser.add_argument(
+        "--test-file",
+        type=Path,
+        help="Run cleaner on one specific input file (for CI/integration testing)",
+    )
+    parser.add_argument(
+        "--test-category",
+        choices=list(CATEGORY_CLEANERS.keys()),
+        help="Category of the test file (required with --test-file)",
+    )
+    parser.add_argument(
+        "--test-output-dir",
+        type=Path,
+        help="Output directory for test mode (required with --test-file)",
+    )
+
     args = parser.parse_args()
 
+    # ----------------------------------------------------------
+    # TEST MODE
+    # ----------------------------------------------------------
+    if args.test_file:
+        if not args.test_category or not args.test_output_dir:
+            parser.error("--test-file requires --test-category and --test-output-dir")
+
+        print("=" * 56)
+        print("SILVER CLEANER V3 - TEST MODE")
+        print(f"  Test file   : {args.test_file}")
+        print(f"  Category    : {args.test_category}")
+        print(f"  Output dir  : {args.test_output_dir}")
+        print("=" * 56)
+
+        try:
+            totals = run_single_file_test(
+                test_file=args.test_file,
+                category=args.test_category,
+                test_output_dir=args.test_output_dir,
+            )
+        except Exception as e:
+            print(f"[ERROR] Test mode failed: {e}")
+            sys.exit(1)
+
+        print()
+        print("=" * 56)
+        print("FINISHED")
+        print(f"  Total   : {totals['total']}")
+        print(f"  Cleaned : {totals['cleaned']}")
+        print(f"  Skipped : {totals['skipped']}")
+        print(f"  Errors  : {totals['errors']}")
+        print("=" * 56)
+        return
+
+    # ----------------------------------------------------------
+    # NORMAL MODES
+    # ----------------------------------------------------------
     print("=" * 56)
     print("SILVER CLEANER V3")
     print(f"  Mode    : {args.mode.upper()}")

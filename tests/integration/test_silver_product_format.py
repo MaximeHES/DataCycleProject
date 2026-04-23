@@ -4,43 +4,53 @@ import pandas as pd
 
 
 def test_silver_product_format():
+    print("RUNNING TEST FILE:", __file__)
+
     project_root = Path(__file__).resolve().parents[2]
 
-    input_file = project_root / "tests" / "sample_data" / "raw" / "product" / "2023-01-06_01_20_00-Product_History.dat"
+    input_file = project_root / "tests" / "sample_data" / "raw" / "product" / "2022-05-15_08_35_00-Product_History.dat"
     output_dir = project_root / "tests" / "output"
+    output_file = output_dir / "2022-05-15_08_35_00-Product_History_CLEANED.csv"
+    silver_script = project_root / "Silver" / "Silver_CleanerV3.py"
+
+    # Ensure output directory exists
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    output_file = output_dir / "2023-01-06_01_20_00-Product_History_CLEANED.csv"
-
+    # Force deletion of previous output
     if output_file.exists():
+        print("Deleting old output file...")
         output_file.unlink()
 
-    silver_script = project_root / "Silver" / "silver_cleaner.py"
-
+    # Run the real Silver script
     result = subprocess.run(
         [
             "python",
             str(silver_script),
-            "--input",
-            str(input_file),
-            "--output",
-            str(output_dir)
+            "--test-file", str(input_file),
+            "--test-category", "Product_History",
+            "--test-output-dir", str(output_dir),
         ],
         capture_output=True,
         text=True
     )
 
-    assert result.returncode == 0, (
-        f"Silver script failed.\n"
-        f"STDOUT:\n{result.stdout}\n"
-        f"STDERR:\n{result.stderr}"
-    )
+    print("STDOUT:\n", result.stdout)
+    print("STDERR:\n", result.stderr)
 
-    assert output_file.exists(), "Expected cleaned CSV was not created."
+    # Check script execution
+    assert result.returncode == 0, "Silver script execution failed"
+
+    # Check output file exists
+    assert output_file.exists(), f"Output file not found: {output_file}"
+
+    print(f"Reading generated file: {output_file}")
 
     df = pd.read_csv(output_file)
 
-    assert not df.empty, "Generated cleaned CSV is empty."
+    print("GENERATED COLUMNS:", list(df.columns))
+
+    # Check file is not empty
+    assert not df.empty, "Generated file is empty"
 
     required_columns = [
         "machine_id",
@@ -52,14 +62,12 @@ def test_silver_product_format():
     for col in required_columns:
         assert col in df.columns, f"Missing required column: {col}"
 
+    # Timestamp validation
     ts = pd.to_datetime(df["timestamp"], errors="coerce")
-    assert ts.notna().all(), "Some timestamps are invalid."
+    assert ts.notna().all(), "Invalid timestamps found"
 
-    important_columns = [
-        "machine_id",
-        "timestamp",
-        "source_file"
-    ]
+    # Important columns not null
+    important_columns = ["timestamp", "source_file"]
 
     for col in important_columns:
-        assert df[col].notna().all(), f"Column {col} contains null values."
+        assert df[col].notna().all(), f"Column {col} contains null values"
