@@ -174,7 +174,7 @@ def clean_product(file_path: Path) -> pd.DataFrame:
             (df["milk_temp"].fillna(0) > 0) | (df["steam_pressure"].fillna(0) > 0),
             1, 0,
         )
-
+    df = df.rename(columns={"machine_id": "machine_id_broken"})
     return add_metadata(df, file_path)
 
 
