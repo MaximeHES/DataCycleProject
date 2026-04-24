@@ -1,5 +1,0 @@
-﻿machine_id;timestamp;rinse_type;flow_rate_left;flow_rate_right;status_left;status_right;pump_pressure;nozzle_flow_rate_left;nozzle_flow_rate_right;nozzle_status_left;nozzle_status_right
-5255;2021-07-07 12:40:23;2;65;65535;6;0;0;65535;65535;0;0
-5255;2021-07-07 12:43:04;2;60;65535;6;0;0;65535;65535;0;0
-5255;2021-07-07 12:43:05;3;65535;60;0;6;0;65535;65535;0;0
-5255;2021-07-07 12:44:30;2;65;65535;6;0;0;65535;65535;0;0
