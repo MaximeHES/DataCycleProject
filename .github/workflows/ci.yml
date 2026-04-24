@@ -26,8 +26,13 @@ jobs:
           if (Test-Path requirements.txt) {
             pip install -r requirements.txt
           }
+          pip install pytest pandas
         shell: powershell
 
       - name: Validate Python syntax
         run: python -m compileall .
+        shell: powershell
+
+      - name: Run tests
+        run: python -m pytest -v
         shell: powershell

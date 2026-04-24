@@ -1,11 +1,5 @@
 # 🚀 Data Cycle Project – Production Branch
 
-![Status](https://img.shields.io/badge/status-production-brightgreen)
-![Python](https://img.shields.io/badge/python-3.x-blue)
-![Prefect](https://img.shields.io/badge/orchestration-prefect-6f42c1)
-![Platform](https://img.shields.io/badge/platform-windows-lightgrey)
-
----
 
 ## 📌 Overview
 
