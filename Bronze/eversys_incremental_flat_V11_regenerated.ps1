@@ -1,23 +1,15 @@
 # ==============================================================
-#testCI
-#testProd
-#testci cd
-# EVERSYS INGESTION V11 - REGENERATED FULL SCRIPT
-# Stable sequential probing for the Eversys 2023 timeline dataset
-#
-# Main fixes vs previous V11:
-# - keeps ONE SMB connection for the whole run
-# - processes categories sequentially (no parallel race on net use)
-# - preserves the source filename timeline (2023-style timestamps)
-# - does NOT jump to the current wall-clock year when watermark is old
-# - stops early after configurable missing streaks
-# - keeps state file, batch file, lock handling, and email alerting
+# EVERSYS INGESTION
 # ==============================================================
 
 # ---------- CONFIG ----------
 $ShareRoot = "\\10.130.25.152\Eversys"
-$ShareUser = "Student"
-$SharePass = "3uw.AQ!SWxsDBm2zi3"
+$ShareUser = $env:EVERSYS_SHARE_USER
+$SharePass = $env:EVERSYS_SHARE_PASS
+
+if ([string]::IsNullOrWhiteSpace($ShareUser) -or [string]::IsNullOrWhiteSpace($SharePass)) {
+    throw "Missing Eversys share credentials. Configure EVERSYS_SHARE_USER and EVERSYS_SHARE_PASS."
+}
 $DestRoot  = "C:\RawData\Eversys"
 
 $LogRoot   = "C:\RawData\_logs\Eversys_Ingestion"
@@ -29,18 +21,16 @@ $BatchRoot = Join-Path $StateRoot "batches"
 $MinAgeMinutes = 1
 $LockMaxAgeMinutes = 4
 
-# Important for this project:
-# the source files belong to the historical 2023 timeline, even if we ingest them in 2026.
-# Use this seed only when no valid filename watermark exists.
+
 $DefaultSeedDateString = "2023-02-20_00_00_00"
 
-# Stop after this many missing 5-minute slots if we already found at least one file in the run
+
 $MaxConsecutiveMissingAfterHit = 24      # 2 hours
 
-# Stop after this many missing 5-minute slots if we found nothing yet
+
 $MaxConsecutiveMissingBeforeFirstHit = 96  # 8 hours
 
-# Hard guard against infinite scans if state is broken
+#if state is broken
 $MaxProbesPerCategory = 5000
 
 # ---------- EMAIL CONFIG ----------
@@ -355,9 +345,11 @@ function Connect-Share {
     Write-Log "Connecting to share: $Root"
 
     net use $Root /delete /yes 2>$null | Out-Null
+
     $result = net use $Root /user:$User $Pass 2>&1
+
     if ($LASTEXITCODE -ne 0) {
-        throw "Cannot connect to share $Root | $result"
+        throw "Cannot connect to share $Root. Check credentials, VPN, or permissions."
     }
 
     if (-not (Test-Path $Root)) {
@@ -670,7 +662,7 @@ if (Test-Path $LockFile) {
     if ($lockAge -lt $LockMaxAgeMinutes) {
         $msg = "Lock active $([math]::Round($lockAge,2)) min. Exiting."
         Write-Log $msg
-        Send-AlertEmail -Subject "⚠️ Eversys Ingestion LOCK ($(hostname))" -Body $msg
+        Send-AlertEmail -Subject "âš ï¸ Eversys Ingestion LOCK ($(hostname))" -Body $msg
         exit 0
     }
 
@@ -757,7 +749,7 @@ finally {
 }
 
 if ($failure) {
-    $subject = "🚨 Eversys Ingestion FAILED ($(hostname))"
+    $subject = "ðŸš¨ Eversys Ingestion FAILED ($(hostname))"
     $body = @"
 Eversys ingestion V11 FAILED.
 
