@@ -1,7 +1,4 @@
-"""
-Prefect flow: runs all silver -> gold loaders in sequence.
-Each loader is isolated and idempotent at both file and row level.
-"""
+
 
 from pathlib import Path
 from prefect import flow, task
