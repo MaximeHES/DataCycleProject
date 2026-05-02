@@ -1,7 +1,4 @@
-"""
-Prefect flow for a first gold test load against a test silver root.
-Uses independent state and log folders so it does not pollute production state.
-"""
+
 
 from pathlib import Path
 from prefect import flow, task
