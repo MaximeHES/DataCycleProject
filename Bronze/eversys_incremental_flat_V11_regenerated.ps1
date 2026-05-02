@@ -33,13 +33,6 @@ $MaxConsecutiveMissingBeforeFirstHit = 96  # 8 hours
 #if state is broken
 $MaxProbesPerCategory = 5000
 
-# ---------- EMAIL CONFIG ----------
-$EmailUser       = "python.projectmonitoring@gmail.com"
-$EmailTo         = "python.projectmonitoring@gmail.com"
-$SmtpServer      = "smtp.gmail.com"
-$SmtpPort        = 587
-$GmailSecretFile = "C:\DataCycle\Secrets\gmail_password.txt"
-
 # ---------- RULES ----------
 $Rules = @(
     @{ Category = "Product_History" },
@@ -289,47 +282,6 @@ function Save-BatchFile {
     } | ConvertTo-Json -Depth 8 | Out-File -FilePath $path -Encoding utf8
 
     return $path
-}
-
-# ==============================================================
-# EMAIL
-# ==============================================================
-$EmailCredential = $null
-try {
-    if (Test-Path $GmailSecretFile) {
-        $sec = Get-Content $GmailSecretFile -ErrorAction Stop | ConvertTo-SecureString -ErrorAction Stop
-        $EmailCredential = [System.Management.Automation.PSCredential]::new($EmailUser, $sec)
-        Write-Log "INFO: Gmail credential loaded."
-    }
-    else {
-        Write-Log "WARN: Gmail secret not found - email alerts disabled."
-    }
-}
-catch {
-    Write-Log "WARN: Gmail credential load failed ($($_.Exception.Message)) - email alerts disabled."
-}
-
-function Send-AlertEmail {
-    param(
-        [string]$Subject,
-        [string]$Body
-    )
-
-    if ($null -eq $EmailCredential) {
-        Write-Log "WARN: No credential - skipping email."
-        return
-    }
-
-    try {
-        Send-MailMessage -SmtpServer $SmtpServer -Port $SmtpPort -UseSsl `
-            -Credential $EmailCredential -From $EmailUser -To $EmailTo `
-            -Subject $Subject -Body $Body -ErrorAction Stop
-
-        Write-Log "INFO: Alert sent: $Subject"
-    }
-    catch {
-        Write-Log "WARN: Email failed: $($_.Exception.Message)"
-    }
 }
 
 # ==============================================================
@@ -662,7 +614,6 @@ if (Test-Path $LockFile) {
     if ($lockAge -lt $LockMaxAgeMinutes) {
         $msg = "Lock active $([math]::Round($lockAge,2)) min. Exiting."
         Write-Log $msg
-        Send-AlertEmail -Subject "âš ï¸ Eversys Ingestion LOCK ($(hostname))" -Body $msg
         exit 0
     }
 
@@ -749,23 +700,11 @@ finally {
 }
 
 if ($failure) {
-    $subject = "ðŸš¨ Eversys Ingestion FAILED ($(hostname))"
-    $body = @"
-Eversys ingestion V11 FAILED.
-
-Host       : $(hostname)
-User       : $env:USERNAME
-Time       : $(Get-Date)
-Source     : $ShareRoot
-Dest       : $DestRoot
-State file : $StateFile
-Batch file : $batchFilePath
-Log file   : $logFilePath
-
-First errors (max 15):
-$($failureDetails | Select-Object -First 15 | Out-String)
-"@
-    Send-AlertEmail -Subject $subject -Body $body
+    Write-Log "Ingestion finished with failure. See log file: $logFilePath"
+    Write-Log "First errors (max 15):"
+    foreach ($detail in ($failureDetails | Select-Object -First 15)) {
+        Write-Log $detail
+    }
     exit 1
 }
 
