@@ -11,7 +11,7 @@ from pathlib import Path
 def run_bronze():
     logger = get_run_logger()
 
-    ps_script = Path(r"C:\DataCycle\Scripts\eversys_incremental_flat_V11_regenerated.ps1")
+    ps_script = Path(r"C:\DataCycle_CICD_Test\Bronze\eversys_incremental_flat_V11_regenerated.ps1")
     working_dir = str(ps_script.parent)
 
     logger.info(f"Starting Bronze layer: {ps_script}")
@@ -50,7 +50,7 @@ def run_bronze():
 def run_silver():
     logger = get_run_logger()
 
-    py_script = Path(r"C:\DataCycle\Prefect\silver_cleanerV3.py")
+    py_script = Path(r"C:\DataCycle_CICD_Test\Silver\Silver_CleanerV3.py")
     working_dir = str(py_script.parent)
 
     logger.info(f"Starting Silver Cleaner: {py_script}")
