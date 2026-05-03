@@ -3,7 +3,8 @@ Weekly pipeline orchestrator.
 Runs every Sunday at 04:00 via Windows Task Scheduler.
 Order:
   1. merge_product_history.py   (90s pause after)
-  2. predict_product.py
+  2. predict_product.py         (30s pause after)
+  3. load_product_to_sql.py
 Logs each script to its own timestamped file.
 Generates a summary log on success.
 Stops on failure.
@@ -23,12 +24,14 @@ OUTPUT_DIR  = r"C:\DataCycle\ml\output"
 
 PIPELINE = [
     {"script": "merge_product_history.py", "pause_after": 90},
-    {"script": "predict_product.py",        "pause_after": 0},
+    {"script": "predict_product.py",        "pause_after": 30},
+    {"script": "load_product_to_sql.py",    "pause_after": 0},
 ]
 
 LOG_PREFIX = {
     "merge_product_history.py" : "merge_product",
     "predict_product.py"       : "predict_product",
+    "load_product_to_sql.py"   : "load_product_sql",
 }
 
 

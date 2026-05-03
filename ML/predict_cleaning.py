@@ -184,7 +184,7 @@ for key in urgency_order:
         print(f"    {urgency_labels[key]} : {count} machines")
 
 os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
-predictions.to_csv(OUTPUT_PATH, index=False)
+predictions.to_csv(OUTPUT_PATH, index=False, encoding="utf-8-sig")
 
 print(f"\n[8] Saved -> {OUTPUT_PATH}")
 print(f"    Rows : {len(predictions)} active machines")

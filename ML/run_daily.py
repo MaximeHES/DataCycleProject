@@ -3,7 +3,8 @@ Daily pipeline orchestrator.
 Runs every day at 02:00 via Windows Task Scheduler.
 Order:
   1. merge_cleaning_history.py   (90s pause after)
-  2. predict_cleaning.py
+  2. predict_cleaning.py         (30s pause after)
+  3. load_cleaning_to_sql.py
 Logs each script to its own timestamped file.
 Generates a summary log on success.
 Stops on failure.
@@ -23,12 +24,14 @@ OUTPUT_DIR  = r"C:\DataCycle\ml\output"
 
 PIPELINE = [
     {"script": "merge_cleaning_history.py", "pause_after": 90},
-    {"script": "predict_cleaning.py",        "pause_after": 0},
+    {"script": "predict_cleaning.py",        "pause_after": 30},
+    {"script": "load_cleaning_to_sql.py",    "pause_after": 0},
 ]
 
 LOG_PREFIX = {
     "merge_cleaning_history.py" : "merge_cleaning",
     "predict_cleaning.py"       : "predict_cleaning",
+    "load_cleaning_to_sql.py"   : "load_cleaning_sql",
 }
 
 

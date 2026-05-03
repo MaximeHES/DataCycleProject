@@ -261,7 +261,7 @@ summary = (
 print(summary.to_string(index=False))
 
 os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
-predictions.to_csv(OUTPUT_PATH, index=False)
+predictions.to_csv(OUTPUT_PATH, index=False, encoding="utf-8-sig")
 
 print(f"\n[9] Saved -> {OUTPUT_PATH}")
 print(f"    Rows : {len(predictions)} active combos (filtered from 322 total)")
