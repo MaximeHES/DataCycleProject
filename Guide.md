@@ -43,7 +43,8 @@ git push
 
  Wait until the **CI is green** 
 
-![image.png](attachment:7a16f892-f0a6-4640-9473-985fa9b15b54:image.png)
+<img width="1276" height="85" alt="image1" src="https://github.com/user-attachments/assets/b6d1cc4b-d091-4a42-aa14-479844501aad" />
+
 
 # STEP 6 — Create a Pull Request
 
@@ -62,7 +63,8 @@ Set:
 - Check your changes
 - Click **Merge pull request**
 
-![image.png](attachment:95115698-22cc-4c12-ab6e-a254ac9de727:image.png)
+<img width="862" height="314" alt="image2" src="https://github.com/user-attachments/assets/0435327b-59de-426a-bda8-6f6dbbdffcda" />
+
 
 # STEP 8 — Automatic Deployment
 
@@ -70,13 +72,6 @@ After merging:
 
 GitHub automatically deploys to the VM
 
-For now still using manual slf hosted runner so:
-
-```powershell
-PS C:\actions-runner> .\run.cmd
-```
-
-![image.png](attachment:ef011dad-1e60-4596-8235-388e75e6fd91:image.png)
 
 # STEP 9 — Verify deployment (VM)
 
@@ -85,5 +80,6 @@ On the server:
 ```
 dirC:\DataCycle_CICD_Test
 ```
+<img width="660" height="201" alt="image3" src="https://github.com/user-attachments/assets/c8b826b5-dae7-4d82-8afc-d95931629d45" />
 
 Your new file should be there
