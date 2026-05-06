@@ -10,7 +10,8 @@ import pyodbc
 import pandas as pd
 import numpy as np
 
-from db_config import DB_CONFIG
+from keyVaultConfig import DB_CONFIG
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -21,16 +22,18 @@ CLEANING_FILE = r"C:\DataCycle\ml\output\cleaning_predictions.csv"
 
 
 def get_connection():
+
     conn_str = (
         f"DRIVER={{{DB_CONFIG['driver']}}};"
-        f"SERVER={DB_CONFIG['server']};"
+        f"SERVER=tcp:{DB_CONFIG['server']},1433;"
         f"DATABASE={DB_CONFIG['database']};"
         f"UID={DB_CONFIG['username']};"
         f"PWD={DB_CONFIG['password']};"
         "Encrypt=yes;"
         "TrustServerCertificate=no;"
-        "Connection Timeout=30;"
+        "Connection Timeout=60;"
     )
+
     return pyodbc.connect(conn_str)
 
 

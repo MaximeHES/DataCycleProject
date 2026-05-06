@@ -1,15 +1,16 @@
 from __future__ import annotations
+from keyVaultConfig import DB_CONFIG
 
 import hashlib
 import json
 import logging
 import os
+import pyodbc
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any, Optional
-from db_config import DB_CONFIG
 
-import pyodbc
+
 
 
 DEFAULT_SILVER_ROOT = Path(os.environ.get("EVERSYS_SILVER_ROOT", r"C:\RawData\Eversys_Cleaned"))
@@ -27,14 +28,16 @@ SQL_DIR = Path(__file__).resolve().parent / "sql"
 # ---------------------------------------------------------------------------
 
 def get_connection():
-    import pyodbc
 
     conn_str = (
-        "DRIVER={ODBC Driver 17 for SQL Server};"
-        "SERVER=DESKTOP-Q68M9CQ\\SQLEXPRESS;"
-        "DATABASE=Gold;"
-        "Trusted_Connection=yes;"
-        "TrustServerCertificate=yes;"
+        f"DRIVER={{{DB_CONFIG['driver']}}};"
+        f"SERVER=tcp:{DB_CONFIG['server']},1433;"
+        f"DATABASE={DB_CONFIG['database']};"
+        f"UID={DB_CONFIG['username']};"
+        f"PWD={DB_CONFIG['password']};"
+        "Encrypt=yes;"
+        "TrustServerCertificate=no;"
+        "Connection Timeout=60;"
     )
 
     return pyodbc.connect(conn_str)
