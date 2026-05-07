@@ -58,11 +58,8 @@ Managed using **Prefect**
 |------|------------|
 | `bronze-ingestion-flow` | Incremental ingestion from source |
 | `silver-transformation-flow` | Data cleaning and structuring |
+| `gold-loading-flow` | Data loading into DB |
 
-### ⏱️ Scheduling
-
-- Bronze ingestion: runs periodically (e.g. hourly)
-- Silver transformation: triggered after ingestion
 
 ---
 
